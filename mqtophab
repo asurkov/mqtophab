@@ -1,0 +1,35 @@
+#!/bin/bash
+
+if [ "$1" = "-h" ] || [ "$1" = "--help" ] ; then
+  echo ; echo "Sends MQ (Mercruial Queue) applied patches to Phabricator."
+  echo "Usage: bash mqtophab"
+  exit
+fi
+
+echo "Turn MQ applied patches into commits"
+if ! hg qfinish -a ; then
+  exit 1
+fi
+
+revs=($(hg out | grep changeset | sed -E 's|[^0-9]+([0-9]+)[:].*|\1|'))
+
+echo "Send ${revs[@]} commits to phab:"
+echo "$(hg log ${revs[@]/#/-r } | grep -E "changeset|summary")"
+
+if ! hg phabsend ${revs[@]/#/-r } ; then
+  exit 1
+fi
+
+revs_to_mq=($(hg log -l ${#revs[@]} | grep changeset | sed -E 's|[^0-9]+([0-9]+)[:].*|\1|'))
+
+echo "Turn commits into MQ patches: ${revs_to_mq[@]/#/-r }"
+echo "$(hg log ${revs_to_mq[@]/#/-r } | grep -E "changeset|summary")"
+
+for rev in "${revs_to_mq[@]}" ; do
+  echo "HG qimport $rev"
+  if ! hg qimport -r $rev && hg qpop ; then
+    exit 1
+  fi
+done
+
+echo "Completed"
