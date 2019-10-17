@@ -7,16 +7,22 @@ if [ "$1" = "-h" ] || [ "$1" = "--help" ] ; then
 fi
 
 echo "Turn MQ applied patches into commits"
+cnt=$(hg qapp | wc -l| tr -dc '0-9')
+if [ "$cnt" = 0 ] ; then
+  echo "No patches applied, exit.."
+  exit
+fi
+
 if ! hg qfinish -a ; then
   exit 1
 fi
 
-revs=($(hg out | grep changeset | sed -E 's|[^0-9]+([0-9]+)[:].*|\1|'))
+revs=($(hg log -l $cnt | grep changeset | sed -E 's|[^0-9]+([0-9]+)[:].*|\1|'))
 
 echo "Send ${revs[@]} commits to phab:"
 echo "$(hg log ${revs[@]/#/-r } | grep -E "changeset|summary")"
 
-if ! hg phabsend ${revs[@]/#/-r } ; then
+if ! moz-phab submit ; then
   exit 1
 fi
 
