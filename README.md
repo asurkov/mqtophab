@@ -4,7 +4,7 @@ Sends all applied (hg qapp) MQ patches to Phabricator. It is a bash wrapper arou
 
 ## How to use
 
-``bash mqtophab.sh``
+``bash mqtophab``
 
 ## Notes
 
